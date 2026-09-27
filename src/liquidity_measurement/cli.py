@@ -65,6 +65,9 @@ def main():
         return
     if args.seconds <= 0:
         parser.error("seconds must be positive")
+    measure_output = Path(args.output).with_name(Path(args.output).name + "-measures")
+    if Path(args.output).exists() or measure_output.exists():
+        parser.error("choose a new recording name; existing raw data and measures are preserved")
     rules = json.loads(Path(args.rules).read_text(encoding="utf-8")) if args.rules else None
     if args.phase == "evaluation" and rules is None:
         parser.error("evaluation requires --rules from a separate pilot")
@@ -74,7 +77,7 @@ def main():
     from .pipeline import Pipeline
     if rules and set(args.venues) != set(rules["venues"]):
         parser.error("record the same venues used for pilot calibration")
-    pipeline = Pipeline(Path(args.output).with_name(Path(args.output).name + "-measures"), args.venues, rules)
+    pipeline = Pipeline(measure_output, args.venues, rules)
     try:
         metadata = asyncio.run(record_session(args.output, args.seconds, args.phase, args.venues,
                                               processor=pipeline.process, rules=rules))
