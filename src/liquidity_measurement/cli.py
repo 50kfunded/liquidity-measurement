@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import json
 from pathlib import Path
 
 
@@ -11,22 +12,42 @@ def main():
     record.add_argument("--seconds", type=int, default=60)
     record.add_argument("--phase", choices=["development", "pilot", "evaluation"], default="development")
     record.add_argument("--venues", nargs="+", choices=["kraken", "coinbase"], default=["kraken", "coinbase"])
+    record.add_argument("--rules", help="frozen pilot thresholds; required for evaluation")
     chart = commands.add_parser("chart", help="plot saved spread, depth, and feed health")
     chart.add_argument("directory")
     chart.add_argument("--output", default="results/liquidity.png")
+    pilot = commands.add_parser("calibrate", help="freeze rules from a pilot session")
+    pilot.add_argument("session")
+    pilot.add_argument("--measures")
+    pilot.add_argument("--output", required=True)
     args = parser.parse_args()
     if args.command == "chart":
         from .charts import plot_series, read_observations
         plot_series(read_observations(args.directory), args.output)
         print(f"saved chart to {args.output}")
         return
+    if args.command == "calibrate":
+        from .rules import calibrate
+        from .storage import write_json
+        measures = args.measures or str(Path(args.session).with_name(Path(args.session).name + "-measures"))
+        if Path(args.output).exists():
+            parser.error("choose a new rules file; frozen thresholds cannot be overwritten")
+        write_json(args.output, calibrate(args.session, measures))
+        print(f"saved fixed pilot rules to {args.output}")
+        return
     if args.seconds <= 0:
         parser.error("seconds must be positive")
+    rules = json.loads(Path(args.rules).read_text(encoding="utf-8")) if args.rules else None
+    if args.phase == "evaluation" and rules is None:
+        parser.error("evaluation requires --rules from a separate pilot")
+    if rules and rules.get("synthetic"):
+        parser.error("synthetic rules cannot be used for a live recording")
     from .collector import record_session
     from .pipeline import Pipeline
     pipeline = Pipeline(Path(args.output).with_name(Path(args.output).name + "-measures"), args.venues)
     try:
-        metadata = asyncio.run(record_session(args.output, args.seconds, args.phase, args.venues, processor=pipeline.process))
+        metadata = asyncio.run(record_session(args.output, args.seconds, args.phase, args.venues,
+                                              processor=pipeline.process, rules=rules))
     finally:
         pipeline.close()
     print(f"saved {metadata['phase']} session to {args.output}")

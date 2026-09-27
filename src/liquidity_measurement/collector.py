@@ -24,12 +24,13 @@ FEEDS = {
 }
 
 
-async def record_session(directory, seconds=60, phase="development", venues=("kraken",), processor=None):
+async def record_session(directory, seconds=60, phase="development", venues=("kraken",), processor=None, rules=None):
     session_id = uuid.uuid4().hex
     metadata = {
         "schema": 1, "session_id": session_id, "started_at": utc_now(),
         "phase": phase, "synthetic": False, "venues": list(venues),
         "market": "BTC/USD", "depth_levels": 100, "sample_seconds": 1,
+        "rules": rules,
     }
     journal = Journal(directory, metadata)
     queue = asyncio.Queue(maxsize=4096)
