@@ -14,3 +14,6 @@ liquidity = "liquidity_measurement.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+liquidity_measurement = ["web/*.html", "web/*.js", "web/*.css"]

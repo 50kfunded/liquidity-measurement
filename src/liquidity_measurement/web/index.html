@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Liquidity Measurement</title><link rel="stylesheet" href="/style.css">+</head>
+<body>
+  <header><span class="eyebrow">BTC / USD · MARKET DATA RESEARCH</span><h1>Liquidity Measurement</h1>
+    <p>did liquidity change, or did the feed fail?</p><div id="session">waiting for a recording</div></header>
+  <main>
+    <section id="venues" class="venues" aria-label="feed measurements"></section>
+    <section class="panel"><div class="section-title"><h2>the recorded market</h2><span>last 10 minutes · UTC</span></div>
+      <div class="charts"><div><h3>spread <small>bps</small></h3><canvas id="spread" aria-label="spread chart"></canvas></div>
+      <div><h3>nearby depth <small>USD · within 10 bps</small></h3><canvas id="depth" aria-label="depth chart"></canvas></div></div>
+      <p class="note">blue: kraken · orange: coinbase. gaps mean the observation is unavailable.</p>
+    </section>
+    <section class="panel"><div class="section-title"><h2>events worth checking</h2><span id="count">0 events</span></div>
+      <div id="events"></div></section>
+    <section id="detail" class="panel" hidden><h2 id="event-title"></h2><p id="event-reason"></p>
+      <div class="charts"><div><h3>spread around the event <small>bps</small></h3><canvas id="event-spread"></canvas></div>
+      <div><h3>depth around the event <small>USD</small></h3><canvas id="event-depth"></canvas></div></div>
+      <div class="charts"><div><h3>mid-price <small>USD</small></h3><canvas id="event-price"></canvas></div>
+      <div><h3>displayed buy cost <small>bps · triggering venue</small></h3><canvas id="event-cost"></canvas></div></div>
+      <h3>what the feed showed</h3><div id="timeline" class="table-wrap"></div>
+      <details><summary>trigger values, baselines, and recovery</summary><pre id="evidence"></pre></details></section>
+    <p class="footer">displayed books, not executable prices. kraken checks the top 10 levels with CRC32; coinbase uses connection and structural checks. two venues cannot establish a market-wide cause.</p>
+  </main><script src="/app.js"></script>
+</body>
+</html>
