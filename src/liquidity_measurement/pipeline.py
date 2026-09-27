@@ -91,7 +91,8 @@ class Pipeline:
         return None
 
     def sample(self, record, now):
-        row = {"time": record["received_at"], "session_id": record["session_id"], "venues": {}}
+        row = {"time": record["received_at"], "session_id": record["session_id"],
+               "terminal": record.get("terminal", False), "venues": {}}
         for venue, state in self.feeds.items():
             status, reason = state.health(now)
             values = {"status": status, "reason": reason,

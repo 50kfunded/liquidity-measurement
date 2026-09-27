@@ -17,6 +17,8 @@ class EventEngine:
 
     def add(self, row):
         self.rows.append(row)
+        if row.get("terminal"):
+            return
         now = timestamp(row["time"])
         if self.active and now - self.active["last_trigger_seconds"] > self.rules["merge_gap_seconds"]:
             self.active["closed"] = True

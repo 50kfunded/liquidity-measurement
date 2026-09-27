@@ -105,7 +105,7 @@ async def record_session(directory, seconds=60, phase="development", venues=("kr
     finally:
         stop.set()
         await asyncio.gather(*feeds, sampler)
-        await queue.put(envelope(None, None, "sample"))
+        await queue.put(envelope(None, None, "sample", terminal=True))
         await queue.put(None)
         await consumer
         journal.close()
