@@ -35,13 +35,15 @@ def replay(session, output):
     return summarize(output)
 
 
-def summarize(directory):
+def summarize(directory, reviews_path=None):
     directory = Path(directory)
     rows = read_observations(directory)
     metadata_path = directory / "session.json"
     metadata = json.loads(metadata_path.read_text(encoding="utf-8")) if metadata_path.exists() else {}
     events_path = directory / "events.json"
     events = json.loads(events_path.read_text(encoding="utf-8")) if events_path.exists() else []
+    from .reviews import read_reviews
+    reviews = read_reviews(events, reviews_path)
     total = timestamp(rows[-1]["time"]) - timestamp(rows[0]["time"]) if len(rows) > 1 else 0
     coverage = {}
     for venue in metadata.get("venues", sorted({v for r in rows for v in r["venues"]})):
@@ -65,21 +67,26 @@ def summarize(directory):
               "coverage": coverage, "feed_counts": counts,
               "reconnections": max(0, counts.get("connections", 0) - len(coverage)),
               "events": len(events), "classifications": dict(Counter(e["classification"] for e in events)),
-              "manual_reviews": 0, "changed_on_review": None}
+              "manual_reviews": len(reviews), "changed_on_review": sum(
+                  review["reviewed_label"] != next(e["classification"] for e in events if e["id"] == identity)
+                  for identity, review in reviews.items()) if reviews else None}
     write_json(directory / "summary.json", result)
     return result
 
 
-def report(directory, output):
+def report(directory, output, reviews_path=None):
     directory, output = Path(directory), Path(output)
     output.mkdir(parents=True, exist_ok=True)
-    summary = summarize(directory)
+    summary = summarize(directory, reviews_path)
     rows = read_observations(directory)
     synthetic = summary["synthetic"]
     title = "Synthetic fault demonstration" if synthetic else "Recorded BTC/USD observations"
     plot_series(rows, output / "liquidity.png", title)
     events_path = directory / "events.json"
     events = json.loads(events_path.read_text(encoding="utf-8")) if events_path.exists() else []
+    from .reviews import read_reviews, write_template
+    reviews = read_reviews(events, reviews_path)
+    write_template(events, output / "manual-review-template.csv")
     lines = ["# Liquidity Measurement and Market Data Quality", "",
              "did displayed liquidity change, or did the feed become unreliable?", "",
              "**synthetic demonstration — these are artificial events, not market findings.**" if synthetic else
@@ -102,8 +109,12 @@ def report(directory, output):
     if not events:
         lines += ["no events were detected with these fixed rules in this recording. "
                   "there are insufficient events to compare spread and depth recovery.", ""]
-    lines += ["## manual review", "", "no manual classification reviews have been recorded in this output. "
-              "automated fault tests are a software check and are reported separately.", "",
+    review_text = (f"{len(reviews)} events were reviewed; {summary['changed_on_review']} labels changed on review."
+                   if reviews else "no manual classification reviews have been recorded in this output.")
+    lines += ["## manual review", "", review_text + " automated fault tests are a software check and are reported separately.", ""]
+    for identity, review in reviews.items():
+        lines += [f"- {identity}: {review['reviewed_label']} ({review['reviewer']}). {review['reason']}"]
+    lines += ["",
               "## method and limits", "",
               "measurements use the first 100 levels per side. depth within 10 bps is unavailable unless both "
               "recorded sides reach the band boundary. displayed costs walk these levels for $1,000, $5,000, "
@@ -122,4 +133,5 @@ def report(directory, output):
               "full trigger values, thresholds, feed reasons, baselines, and timelines are saved in events.json."]
     (output / "report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     write_json(output / "summary.json", summary)
+    write_json(output / "manual-reviews.json", reviews)
     return summary

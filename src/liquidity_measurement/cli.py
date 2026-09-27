@@ -26,6 +26,7 @@ def main():
     report_parser = commands.add_parser("report", help="reproduce the figures and research summary")
     report_parser.add_argument("directory")
     report_parser.add_argument("--output", required=True)
+    report_parser.add_argument("--reviews", help="completed manual review CSV")
     monitor = commands.add_parser("monitor", help="open a local view of recorded or live measures")
     monitor.add_argument("directory")
     monitor.add_argument("--port", type=int, default=8765)
@@ -45,7 +46,7 @@ def main():
         if args.command == "replay":
             summary = replay(args.session, args.output)
         else:
-            summary = report(args.directory, args.output)
+            summary = report(args.directory, args.output, args.reviews)
         print(json.dumps(summary, indent=2))
         return
     if args.command == "chart":
