@@ -10,7 +10,15 @@ def main():
     record.add_argument("--output", required=True)
     record.add_argument("--seconds", type=int, default=60)
     record.add_argument("--phase", choices=["development", "pilot", "evaluation"], default="development")
+    chart = commands.add_parser("chart", help="plot saved spread, depth, and feed health")
+    chart.add_argument("directory")
+    chart.add_argument("--output", default="results/liquidity.png")
     args = parser.parse_args()
+    if args.command == "chart":
+        from .charts import plot_series, read_observations
+        plot_series(read_observations(args.directory), args.output)
+        print(f"saved chart to {args.output}")
+        return
     if args.seconds <= 0:
         parser.error("seconds must be positive")
     from .collector import record_session
