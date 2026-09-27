@@ -4,6 +4,8 @@ import asyncio
 import json
 import time
 import uuid
+import platform
+import hashlib
 from pathlib import Path
 
 from websockets.asyncio.client import connect
@@ -31,6 +33,11 @@ async def record_session(directory, seconds=60, phase="development", venues=("kr
         "phase": phase, "synthetic": False, "venues": list(venues),
         "market": "BTC/USD", "depth_levels": 100, "sample_seconds": 1,
         "rules": rules,
+        "python_version": platform.python_version(),
+        "implementation_sha256": hashlib.sha256(b"".join(
+            path.read_bytes() for path in sorted(Path(__file__).parent.glob("*.py"))
+        )).hexdigest(),
+        "recording_complete": False,
     }
     journal = Journal(directory, metadata)
     queue = asyncio.Queue(maxsize=4096)
@@ -90,6 +97,15 @@ async def record_session(directory, seconds=60, phase="development", venues=("kr
                 queue.task_done()
                 break
             item["processing_delay_ms"] = round((time.monotonic() - item.pop("_received_mono")) * 1000, 3)
+            if item["kind"] == "message":
+                try:
+                    message = json.loads(item["raw"])
+                    item["message_type"] = message.get("type") or message.get("channel") or message.get("method")
+                    item["exchange_time"] = message.get("time")
+                    if message.get("channel") == "book":
+                        item["exchange_time"] = message["data"][0].get("timestamp")
+                except (ValueError, TypeError, AttributeError, KeyError, IndexError):
+                    item["message_type"] = "malformed"
             item = journal.append(item)
             if processor:
                 venue_to_rebuild = processor(item)
@@ -101,13 +117,22 @@ async def record_session(directory, seconds=60, phase="development", venues=("kr
     feeds = [asyncio.create_task(feed(v)) for v in venues]
     sampler = asyncio.create_task(samples())
     try:
-        await asyncio.sleep(seconds)
+        try:
+            await asyncio.wait_for(asyncio.shield(consumer), timeout=seconds)
+            raise RuntimeError("recording writer ended unexpectedly")
+        except asyncio.TimeoutError:
+            metadata["recording_complete"] = True
     finally:
         stop.set()
-        await asyncio.gather(*feeds, sampler)
-        await queue.put(envelope(None, None, "sample", terminal=True))
-        await queue.put(None)
-        await consumer
+        if consumer.done():
+            for task in [*feeds, sampler]:
+                task.cancel()
+            await asyncio.gather(*feeds, sampler, return_exceptions=True)
+        else:
+            await asyncio.gather(*feeds, sampler)
+            await queue.put(envelope(None, None, "sample", terminal=True))
+            await queue.put(None)
+            await consumer
         journal.close()
         metadata["ended_at"] = utc_now()
         write_json(Path(directory) / "session.json", metadata)

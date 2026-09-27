@@ -34,7 +34,10 @@ class OrderBook:
         return sorted(values.items(), reverse=side == "bid")[:limit]
 
     def set_level(self, side, price, quantity):
-        price, quantity = Decimal(str(price)), Decimal(str(quantity))
+        try:
+            price, quantity = Decimal(str(price)), Decimal(str(quantity))
+        except InvalidOperation:
+            self.invalidate("invalid numeric price/quantity")
         if not price.is_finite() or not quantity.is_finite() or price <= 0 or quantity < 0:
             self.invalidate("non-finite or invalid price/quantity")
         levels = self.bids if side == "bid" else self.asks

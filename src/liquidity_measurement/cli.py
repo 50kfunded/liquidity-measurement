@@ -29,7 +29,13 @@ def main():
     monitor = commands.add_parser("monitor", help="open a local view of recorded or live measures")
     monitor.add_argument("directory")
     monitor.add_argument("--port", type=int, default=8765)
+    demo_parser = commands.add_parser("demo", help="generate labelled artificial events without a network")
+    demo_parser.add_argument("--output", required=True)
     args = parser.parse_args()
+    if args.command == "demo":
+        from .demo import demo
+        print(json.dumps(demo(args.output), indent=2))
+        return
     if args.command == "monitor":
         from .monitor import serve
         serve(args.directory, args.port)

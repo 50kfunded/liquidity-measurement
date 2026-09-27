@@ -7,6 +7,7 @@ def recovery_time(timeline, venue, key, baseline, start, tolerance=.2, hold_seco
     if baseline is None or baseline <= 0:
         return {"status": "unavailable_baseline", "seconds": None}
     run = previous = None
+    count = 0
     for row in timeline:
         now = timestamp(row["time"])
         if now < start or row.get("terminal"):
@@ -17,11 +18,14 @@ def recovery_time(timeline, venue, key, baseline, start, tolerance=.2, hold_seco
                  and abs(metric - baseline) <= baseline * tolerance)
         if not valid:
             run = previous = None
+            count = 0
             continue
         if run is None or previous is None or now - previous > 1.5:
             run = now
+            count = 0
+        count += 1
         previous = now
-        if now - run >= hold_seconds - 1:
+        if count >= hold_seconds and now - run >= hold_seconds - 1:
             return {"status": "recovered", "seconds": round(run - start, 3),
                     "confirmed_after_seconds": round(now - start, 3)}
     return {"status": "not_observed_to_recover", "seconds": None}

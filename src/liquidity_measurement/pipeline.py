@@ -80,7 +80,7 @@ class Pipeline:
                     state.exchange_time = timestamp(event_time) if event_time else None
                 if state.delay_ms > 1000:
                     state.book.invalidate("processing backlog; fresh snapshot required")
-            except (ValueError, KeyError, TypeError) as exc:
+            except (ValueError, KeyError, TypeError, IndexError, AttributeError, ArithmeticError) as exc:
                 state.book.ready = False
                 state.book.failed = True
                 state.book.reason = str(exc)

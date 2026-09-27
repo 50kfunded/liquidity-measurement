@@ -40,3 +40,9 @@ class KrakenBookTests(unittest.TestCase):
         self.assertEqual(float(book.levels("bid")[0][1]), 3)
         book.set_level("bid", "100", "0")
         self.assertFalse(book.bids)
+
+    def test_bad_numeric_quantity_invalidates_book(self):
+        book = OrderBook("coinbase")
+        with self.assertRaises(InvalidBook):
+            book.set_level("bid", "100", "broken")
+        self.assertTrue(book.failed)

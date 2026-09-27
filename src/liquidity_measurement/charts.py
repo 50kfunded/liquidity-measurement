@@ -14,6 +14,12 @@ def plot_series(rows, output, title="BTC/USD displayed liquidity"):
     import matplotlib.dates as dates
     import matplotlib.pyplot as plt
 
+    expanded = []
+    for row in rows:
+        if expanded and (datetime.fromisoformat(row["time"]) - datetime.fromisoformat(expanded[-1]["time"])).total_seconds() > 1.5:
+            expanded.append({"time": row["time"], "venues": {}})
+        expanded.append(row)
+    rows = expanded
     figure, axes = plt.subplots(3, 1, figsize=(12, 8), sharex=True, layout="constrained")
     keys = (("spread_bps", "Spread (bps)"), ("depth_usd", "Depth within 10 bps (USD)"))
     colours = {"kraken": "#3267ce", "coinbase": "#cf7541"}
