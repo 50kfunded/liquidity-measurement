@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+from pathlib import Path
 
 
 def main():
@@ -13,7 +14,12 @@ def main():
     if args.seconds <= 0:
         parser.error("seconds must be positive")
     from .collector import record_session
-    metadata = asyncio.run(record_session(args.output, args.seconds, args.phase))
+    from .pipeline import Pipeline
+    pipeline = Pipeline(Path(args.output).with_name(Path(args.output).name + "-measures"))
+    try:
+        metadata = asyncio.run(record_session(args.output, args.seconds, args.phase, processor=pipeline.process))
+    finally:
+        pipeline.close()
     print(f"saved {metadata['phase']} session to {args.output}")
 
 
