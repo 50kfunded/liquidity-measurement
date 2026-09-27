@@ -26,7 +26,14 @@ def main():
     report_parser = commands.add_parser("report", help="reproduce the figures and research summary")
     report_parser.add_argument("directory")
     report_parser.add_argument("--output", required=True)
+    monitor = commands.add_parser("monitor", help="open a local view of recorded or live measures")
+    monitor.add_argument("directory")
+    monitor.add_argument("--port", type=int, default=8765)
     args = parser.parse_args()
+    if args.command == "monitor":
+        from .monitor import serve
+        serve(args.directory, args.port)
+        return
     if args.command in ("replay", "report"):
         from .analysis import replay, report
         if args.command == "replay":
