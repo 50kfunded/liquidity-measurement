@@ -45,3 +45,33 @@ def plot_series(rows, output, title="BTC/USD displayed liquidity"):
     Path(output).parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(output, dpi=160)
     plt.close(figure)
+
+
+def plot_costs(rows, output, title):
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.dates as dates
+    import matplotlib.pyplot as plt
+
+    figure, axes = plt.subplots(3, 1, figsize=(12, 7), sharex=True, layout="constrained")
+    times = [datetime.fromisoformat(r["time"].replace("Z", "+00:00")) for r in rows]
+    for axis, size in zip(axes, ("1000", "5000", "10000")):
+        for venue, colour in (("kraken", "#3267ce"), ("coinbase", "#cf7541")):
+            for side, style in (("buy", "-"), ("sell", "--")):
+                values = []
+                for index, row in enumerate(rows):
+                    value = row["venues"].get(venue, {})
+                    cost = value.get("displayed_cost", {}).get(size, {}).get(side, {}).get("cost_bps")
+                    gap = index > 0 and (times[index] - times[index - 1]).total_seconds() > 1.5
+                    values.append(cost if value.get("status") == "valid" and not gap else None)
+                axis.plot(times, values, label=f"{venue} {side}", color=colour, linestyle=style, linewidth=1.4)
+        axis.set_ylabel(f"Cost (bps)\n${int(size):,}")
+        axis.grid(alpha=.2)
+        axis.spines[["top", "right"]].set_visible(False)
+    axes[0].set_title(title + " · displayed cost by order size", loc="left", fontsize=12, fontweight="bold")
+    axes[0].legend(frameon=False, ncols=4, fontsize=9)
+    axes[-1].xaxis.set_major_formatter(dates.DateFormatter("%H:%M:%S"))
+    axes[-1].set_xlabel("UTC · solid: buy, dashed: sell · unavailable fills are gaps")
+    Path(output).parent.mkdir(parents=True, exist_ok=True)
+    figure.savefig(output, dpi=160)
+    plt.close(figure)

@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "session_id": "792a4e3741f54f72a11addce303cafa6",
+  "started_at": "2026-09-27T11:24:46.583829+00:00",
+  "phase": "pilot",
+  "synthetic": false,
+  "venues": [
+    "kraken",
+    "coinbase"
+  ],
+  "market": "BTC/USD",
+  "depth_levels": 100,
+  "sample_seconds": 1,
+  "rules": null,
+  "ended_at": "2026-09-27T11:26:16.730159+00:00"
+}

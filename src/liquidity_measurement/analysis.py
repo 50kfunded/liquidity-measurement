@@ -3,7 +3,7 @@ import json
 from collections import Counter
 from pathlib import Path
 
-from .charts import plot_series, read_observations
+from .charts import plot_series, plot_costs, read_observations
 from .pipeline import Pipeline
 from .storage import read_journal, timestamp, write_json
 
@@ -102,9 +102,11 @@ def report(directory, output, reviews_path=None):
               "## event records", ""]
     for event in events:
         plot_series(event["timeline"], output / f"{event['id']}.png", f"{title} · {event['classification']}")
+        plot_costs(event["timeline"], output / f"{event['id']}-costs.png", title)
         lines += [f"### {event['id']}", "", f"start: {event['start']}. last trigger: {event['last_trigger']}.", "",
                   f"classification: **{event['classification']}**. confidence: {event['confidence']}.", "",
                   event["reason"] + ".", "", f"![event evidence]({event['id']}.png)", "",
+                  f"![displayed costs by size]({event['id']}-costs.png)", "",
                   "recovery and peak changes:", "", "```json", json.dumps(event["recovery"], indent=2), "```", ""]
     if not events:
         lines += ["no events were detected with these fixed rules in this recording. "

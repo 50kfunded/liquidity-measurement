@@ -1,0 +1,38 @@
+{
+  "phase": "evaluation",
+  "synthetic": false,
+  "recorded_seconds": 300.61,
+  "recorded_hours": 0.08350267973211077,
+  "coverage": {
+    "kraken": {
+      "valid_seconds": 298.596,
+      "valid_fraction": 0.9933020813301763,
+      "complete_depth_seconds": 177.397,
+      "states": {
+        "disconnected": 3,
+        "valid": 298
+      }
+    },
+    "coinbase": {
+      "valid_seconds": 298.596,
+      "valid_fraction": 0.9933020813301763,
+      "complete_depth_seconds": 1.01,
+      "states": {
+        "disconnected": 2,
+        "recovering": 1,
+        "valid": 298
+      }
+    }
+  },
+  "feed_counts": {
+    "messages": 15323,
+    "checksum_failures": 0,
+    "connections": 2,
+    "validation_failures": 0
+  },
+  "reconnections": 0,
+  "events": 0,
+  "classifications": {},
+  "manual_reviews": 0,
+  "changed_on_review": null
+}

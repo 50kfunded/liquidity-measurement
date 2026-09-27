@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "created_at": "2026-09-27T11:27:36.992132+00:00",
+  "pilot_session_id": "792a4e3741f54f72a11addce303cafa6",
+  "pilot_ended_at": "2026-09-27T11:26:16.730159+00:00",
+  "synthetic": false,
+  "pilot_observations_sha256": "9133b170639e5d739e57987f5cfe3722dccccd065db6e5f11e743f17bf613b34",
+  "venues": {
+    "kraken": {
+      "spread_bps": 1.9788032480641886,
+      "depth_usd": null,
+      "pilot_spread_median": 0.848010590710044,
+      "pilot_depth_median": 4281084.113364888,
+      "valid_spread_samples": 87,
+      "complete_depth_samples": 29
+    },
+    "coinbase": {
+      "spread_bps": 0.231084991799987,
+      "depth_usd": null,
+      "pilot_spread_median": 0.001177763426076118,
+      "pilot_depth_median": null,
+      "valid_spread_samples": 88,
+      "complete_depth_samples": 0
+    }
+  },
+  "persistence_seconds": 3,
+  "merge_gap_seconds": 60,
+  "comparison_seconds": 5,
+  "baseline_seconds": 60,
+  "minimum_baseline_samples": 20,
+  "recovery_tolerance": 0.2,
+  "recovery_seconds": 60,
+  "method": "pilot 99th/1st percentiles with 1.5x spread and 0.7x depth guards"
+}
