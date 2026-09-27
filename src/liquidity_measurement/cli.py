@@ -44,7 +44,9 @@ def main():
         parser.error("synthetic rules cannot be used for a live recording")
     from .collector import record_session
     from .pipeline import Pipeline
-    pipeline = Pipeline(Path(args.output).with_name(Path(args.output).name + "-measures"), args.venues)
+    if rules and set(args.venues) != set(rules["venues"]):
+        parser.error("record the same venues used for pilot calibration")
+    pipeline = Pipeline(Path(args.output).with_name(Path(args.output).name + "-measures"), args.venues, rules)
     try:
         metadata = asyncio.run(record_session(args.output, args.seconds, args.phase, args.venues,
                                               processor=pipeline.process, rules=rules))

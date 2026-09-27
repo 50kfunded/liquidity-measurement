@@ -37,12 +37,14 @@ class FeedState:
 
 
 class Pipeline:
-    def __init__(self, directory, venues=("kraken",)):
+    def __init__(self, directory, venues=("kraken",), rules=None):
         self.directory = Path(directory)
         self.directory.mkdir(parents=True, exist_ok=True)
         self.feeds = {v: FeedState(v) for v in venues}
         self.stream = (self.directory / "observations.jsonl").open("w", encoding="utf-8")
         self.observations = []
+        from .events import EventEngine
+        self.events = EventEngine(rules) if rules else None
         self.counts = {"messages": 0, "checksum_failures": 0, "connections": 0,
                        "validation_failures": 0}
 
@@ -108,8 +110,13 @@ class Pipeline:
         self.stream.write(json.dumps(row, allow_nan=False) + "\n")
         self.stream.flush()
         self.observations.append(row)
+        if self.events:
+            self.events.add(row)
+            write_json(self.directory / "events.json", self.events.records())
         write_json(self.directory / "latest.json", row)
 
     def close(self):
         self.stream.close()
         write_json(self.directory / "feed_counts.json", self.counts)
+        if self.events:
+            write_json(self.directory / "events.json", self.events.records(final=True))
