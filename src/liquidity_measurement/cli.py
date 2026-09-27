@@ -1,5 +1,20 @@
+import argparse
+import asyncio
+
+
 def main():
-    print("liquidity measurement — project setup")
+    parser = argparse.ArgumentParser(description="measure liquidity and check the feed")
+    commands = parser.add_subparsers(dest="command", required=True)
+    record = commands.add_parser("record", help="record a public BTC/USD feed")
+    record.add_argument("--output", required=True)
+    record.add_argument("--seconds", type=int, default=60)
+    record.add_argument("--phase", choices=["development", "pilot", "evaluation"], default="development")
+    args = parser.parse_args()
+    if args.seconds <= 0:
+        parser.error("seconds must be positive")
+    from .collector import record_session
+    metadata = asyncio.run(record_session(args.output, args.seconds, args.phase))
+    print(f"saved {metadata['phase']} session to {args.output}")
 
 
 if __name__ == "__main__":

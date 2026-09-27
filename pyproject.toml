@@ -7,7 +7,7 @@ name = "liquidity-measurement"
 version = "0.1.0"
 description = "BTC/USD liquidity measurement with market data quality checks"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = ["websockets>=15,<17"]
 
 [project.scripts]
 liquidity = "liquidity_measurement.cli:main"
