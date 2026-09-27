@@ -62,7 +62,11 @@ class EventEngine:
                                          "threshold": self.rules["venues"].get(venue)})
 
     def records(self, final=False):
-        return [investigate(event, self.rows, self.rules, final) for event in self.events]
+        from .recovery import summarize_recovery
+        records = [investigate(event, self.rows, self.rules, final) for event in self.events]
+        for record in records:
+            record["recovery"] = summarize_recovery(record, self.rules)
+        return records
 
 
 def baseline(rows, venue, start, rules):
