@@ -69,7 +69,7 @@ class Pipeline:
             state.delay_ms = record.get("processing_delay_ms", 0)
             try:
                 raw_message = json.loads(record["raw"])
-                is_book = raw_message.get("channel") == "book"
+                is_book = raw_message.get("channel") == "book" or raw_message.get("type") in ("snapshot", "l2update")
                 event_time = state.book.apply(record["raw"])
                 if is_book:
                     state.last_book = now

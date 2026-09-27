@@ -10,6 +10,7 @@ def main():
     record.add_argument("--output", required=True)
     record.add_argument("--seconds", type=int, default=60)
     record.add_argument("--phase", choices=["development", "pilot", "evaluation"], default="development")
+    record.add_argument("--venues", nargs="+", choices=["kraken", "coinbase"], default=["kraken", "coinbase"])
     chart = commands.add_parser("chart", help="plot saved spread, depth, and feed health")
     chart.add_argument("directory")
     chart.add_argument("--output", default="results/liquidity.png")
@@ -23,9 +24,9 @@ def main():
         parser.error("seconds must be positive")
     from .collector import record_session
     from .pipeline import Pipeline
-    pipeline = Pipeline(Path(args.output).with_name(Path(args.output).name + "-measures"))
+    pipeline = Pipeline(Path(args.output).with_name(Path(args.output).name + "-measures"), args.venues)
     try:
-        metadata = asyncio.run(record_session(args.output, args.seconds, args.phase, processor=pipeline.process))
+        metadata = asyncio.run(record_session(args.output, args.seconds, args.phase, args.venues, processor=pipeline.process))
     finally:
         pipeline.close()
     print(f"saved {metadata['phase']} session to {args.output}")

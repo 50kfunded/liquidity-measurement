@@ -11,6 +11,10 @@ from websockets.asyncio.client import connect
 from .storage import Journal, utc_now, write_json
 
 FEEDS = {
+    "coinbase": (
+        "wss://ws-feed.exchange.coinbase.com",
+        {"type": "subscribe", "product_ids": ["BTC-USD"], "channels": ["level2_batch", "heartbeat"]},
+    ),
     "kraken": (
         "wss://ws.kraken.com/v2",
         {"method": "subscribe", "params": {

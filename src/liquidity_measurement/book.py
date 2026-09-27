@@ -58,6 +58,8 @@ class OrderBook:
 
     def apply(self, raw):
         message = json.loads(raw, parse_float=Decimal)
+        if self.venue == "coinbase":
+            return self.apply_coinbase(message)
         if message.get("channel") != "book":
             if message.get("success") is False:
                 self.invalidate(str(message.get("error", "subscription rejected")))
@@ -88,3 +90,29 @@ class OrderBook:
         self.ready = True
         self.reason = "checksum passed"
         return data.get("timestamp")
+
+    def apply_coinbase(self, message):
+        if message.get("type") == "error":
+            self.invalidate(str(message.get("message", "subscription rejected")))
+        if message.get("type") not in ("snapshot", "l2update") or message.get("product_id") != "BTC-USD":
+            return None
+        if self.failed:
+            raise InvalidBook(self.reason)
+        if message["type"] == "snapshot":
+            self.bids.clear()
+            self.asks.clear()
+            for wire, side in (("bids", "bid"), ("asks", "ask")):
+                for price, size in message[wire]:
+                    self.set_level(side, price, size)
+        else:
+            if not self.ready:
+                self.invalidate("update arrived before snapshot")
+            for side, price, size in message["changes"]:
+                if side not in ("buy", "sell"):
+                    self.invalidate("unknown coinbase book side")
+                self.set_level("bid" if side == "buy" else "ask", price, size)
+        # keep the full coinbase book; discarded deeper levels cannot be reconstructed later.
+        self.validate()
+        self.ready = True
+        self.reason = "snapshot received; connection and book structure passed"
+        return message.get("time")
