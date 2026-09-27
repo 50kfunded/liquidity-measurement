@@ -46,3 +46,18 @@ class EventTests(unittest.TestCase):
         for second in range(10):
             engine.add(observation(second, 4, 1))
         self.assertEqual(engine.records(True)[0]["classification"], "uncertain")
+
+    def test_session_ending_during_comparison_is_uncertain(self):
+        engine = EventEngine(rules())
+        for second in range(43):
+            engine.add(observation(second, 4 if second >= 40 else 1))
+        final = observation(43, fault="kraken")
+        final["terminal"] = True
+        engine.add(final)
+        self.assertEqual(engine.records(True)[0]["classification"], "uncertain")
+
+    def test_single_sample_on_other_venue_does_not_corroborate(self):
+        engine = EventEngine(rules())
+        for second in range(150):
+            engine.add(observation(second, 4 if 40 <= second < 50 else 1, 4 if second == 42 else 1))
+        self.assertEqual(engine.records(True)[0]["classification"], "venue_specific_liquidity_change")

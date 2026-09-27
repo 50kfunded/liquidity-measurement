@@ -91,7 +91,7 @@ def investigate(event, rows, rules, final):
     start = timestamp(event["start"])
     end = timestamp(event["last_trigger"])
     window = rules["comparison_seconds"]
-    evidence = [r for r in rows if start - window <= timestamp(r["time"]) <= start + window]
+    evidence = [r for r in rows if start - window <= timestamp(r["time"]) <= start + window and not r.get("terminal")]
     affected = sorted({t["venue"] for t in event["triggers"]})
     bases = {v: baseline(rows, v, start, rules) for v in rules["venues"]}
     label, reason, confidence = "uncertain", "not enough healthy comparison coverage", "low"
@@ -103,13 +103,23 @@ def investigate(event, rows, rules, final):
     elif evidence:
         healthy = all(r["venues"].get(v, {}).get("status") == "valid" for r in evidence for v in ("kraken", "coinbase"))
         coverage = (timestamp(evidence[0]["time"]) <= start - window + 1.5
-                    and timestamp(evidence[-1]["time"]) >= start + window - 1.5)
+                    and timestamp(evidence[-1]["time"]) >= start + window - 1.5
+                    and all(timestamp(b["time"]) - timestamp(a["time"]) <= 1.5 for a, b in zip(evidence, evidence[1:])))
         own_invalid = any(r["venues"].get(v, {}).get("status") != "valid" for r in evidence for v in affected)
         if own_invalid:
             label, reason, confidence = "feed_problem", "triggering venue has unusable data in the comparison window", "high_for_unusable_data"
         elif healthy and coverage and all(bases[v]["valid_samples"] >= rules["minimum_baseline_samples"] for v in affected):
-            breaches = {v: set(m for r in evidence for m in triggers(r["venues"][v], rules["venues"][v]))
-                        for v in ("kraken", "coinbase")}
+            breaches = {}
+            for venue in ("kraken", "coinbase"):
+                counts = {"spread_bps": 0, "depth_usd": 0}
+                persistent = set()
+                for row in evidence:
+                    found = triggers(row["venues"][venue], rules["venues"][venue])
+                    for measure in counts:
+                        counts[measure] = counts[measure] + 1 if measure in found else 0
+                        if counts[measure] >= rules["persistence_seconds"]:
+                            persistent.add(measure)
+                breaches[venue] = persistent
             comparable = breaches["kraken"] & breaches["coinbase"]
             if comparable:
                 label = "corroborated_liquidity_change"
