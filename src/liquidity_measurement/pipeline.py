@@ -72,6 +72,8 @@ class Pipeline:
                 is_book = raw_message.get("channel") == "book" or raw_message.get("type") in ("snapshot", "l2update")
                 event_time = state.book.apply(record["raw"])
                 if is_book:
+                    if event_time and state.exchange_time and timestamp(event_time) < state.exchange_time:
+                        state.book.invalidate("exchange book times arrived out of order")
                     state.last_book = now
                     state.exchange_time = timestamp(event_time) if event_time else None
                 if state.delay_ms > 1000:
