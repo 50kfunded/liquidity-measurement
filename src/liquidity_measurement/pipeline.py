@@ -15,6 +15,7 @@ class FeedState:
         self.last_book = None
         self.exchange_time = None
         self.delay_ms = 0
+        self.connected_at = None
 
     def health(self, now):
         if not self.connected:
@@ -51,14 +52,25 @@ class Pipeline:
     def process(self, record):
         now = timestamp(record["received_at"])
         if record["kind"] == "sample":
+            rebuild = []
+            for venue, state in self.feeds.items():
+                snapshot_timeout = state.connected and not state.book.ready and not state.book.failed and state.connected_at is not None and now - state.connected_at > 10
+                silent = state.connected and not state.book.failed and state.last_message is not None and now - state.last_message > 5
+                if snapshot_timeout or silent:
+                    state.book.ready = False
+                    state.book.failed = True
+                    state.book.reason = "snapshot timeout" if snapshot_timeout else "feed went silent; fresh snapshot required"
+                    self.counts["validation_failures"] += 1
+                    rebuild.append(venue)
             self.sample(record, now)
-            return None
+            return rebuild or None
         state = self.feeds[record["venue"]]
         kind = record["kind"]
         if kind == "connected":
             state.book.reset()
             state.connected = True
             state.connection_id = record["connection_id"]
+            state.connected_at = now
             state.last_message = state.last_book = state.exchange_time = None
             self.counts["connections"] += 1
         elif kind in ("disconnected", "error", "resync_requested"):

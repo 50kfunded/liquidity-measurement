@@ -108,9 +108,12 @@ async def record_session(directory, seconds=60, phase="development", venues=("kr
                     item["message_type"] = "malformed"
             item = journal.append(item)
             if processor:
-                venue_to_rebuild = processor(item)
-                if venue_to_rebuild in rebuild:
-                    rebuild[venue_to_rebuild].set()
+                venues_to_rebuild = processor(item)
+                if isinstance(venues_to_rebuild, str):
+                    venues_to_rebuild = [venues_to_rebuild]
+                for venue_to_rebuild in venues_to_rebuild or []:
+                    if venue_to_rebuild in rebuild:
+                        rebuild[venue_to_rebuild].set()
             queue.task_done()
 
     consumer = asyncio.create_task(consume())
