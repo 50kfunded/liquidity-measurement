@@ -4,7 +4,7 @@ const number = n => n == null ? '—' : n.toFixed(3);
 const text = (tag, value, className) => {const el = document.createElement(tag); el.textContent = value; if (className) el.className = className; return el;};
 const label = value => value.replaceAll('_', ' ');
 const time = value => new Date(value).toISOString().slice(11, 19);
-let history = [], selected = null;
+let history = [], selected = null, eventListSignature = '';
 
 function chart(id, rows, key, series=['kraken', 'coinbase']) {
   const canvas = $(id), box = canvas.getBoundingClientRect(), ratio = devicePixelRatio || 1;
@@ -40,9 +40,9 @@ function venueCard(venue, value, fresh) {
   return card;
 }
 
-async function showEvent(id) {
-  selected = id; const response = await fetch('/api/events/'+encodeURIComponent(id)); if(!response.ok)return;
-  const event=await response.json();$('detail').hidden=false;$('event-title').textContent=event.id+' · '+label(event.classification);$('event-reason').textContent=event.reason+' · '+event.confidence+' confidence';
+async function showEvent(id, choose=true) {
+  if(choose)selected = id; const response = await fetch('/api/events/'+encodeURIComponent(id)); if(!response.ok)return;
+  const event=await response.json();if(selected!==id)return;$('detail').hidden=false;$('event-title').textContent=event.id+' · '+label(event.classification);$('event-reason').textContent=event.reason+' · '+event.confidence+' confidence';
   chart('event-spread',event.timeline,'spread_bps');chart('event-depth',event.timeline,'depth_usd');chart('event-price',event.timeline,'mid_price');chart('event-cost',event.timeline,'cost',['1000','5000','10000'].map(size=>event.affected_venues[0]+':'+size));
   const table=text('table',''), head=text('tr','');['UTC','venue','status','spread (bps)','depth (USD)','checks'].forEach(v=>head.append(text('th',v)));table.append(head);
   event.timeline.filter((_,i)=>i%Math.max(1,Math.ceil(event.timeline.length/100))===0).forEach(row=>Object.entries(row.venues).forEach(([venue,v])=>{const tr=text('tr','');[time(row.time),venue,label(v.status),number(v.spread_bps),money(v.depth_usd),v.reason].forEach(value=>tr.append(text('td',value)));table.append(tr);}));$('timeline').replaceChildren(table);
@@ -53,11 +53,13 @@ async function refresh() {
   try {const response=await fetch('/api/state');if(!response.ok)throw Error('recording is not ready yet');const data=await response.json();
     $('session').textContent=(data.synthetic?'synthetic demonstration · ':data.phase ? data.phase+' · ' : '')+(data.fresh?'recording live':'saved recording')+(data.latest?' · last observation '+time(data.latest.time)+' UTC':'');
     $('venues').replaceChildren(...Object.entries(data.latest?.venues || {}).map(([v,s])=>venueCard(v,s,data.fresh)));
-    $('count').textContent=data.events.length+' events';$('events').replaceChildren();
-    if(!data.events.length)$('events').append(text('p','no events yet. the tool keeps uncertain cases too.','empty'));
-    data.events.slice().reverse().forEach(event=>{const button=text('button','', 'event');button.append(text('span',time(event.start)+' UTC'),text('strong',label(event.classification)),text('span',event.affected_venues.join(' + ')+' · '+event.status));button.onclick=()=>showEvent(event.id);$('events').append(button);});
+    $('count').textContent=data.events.length+' events';
+    const signature=JSON.stringify(data.events.map(e=>[e.id,e.classification,e.status]));
+    if(signature!==eventListSignature){eventListSignature=signature;$('events').replaceChildren();
+      if(!data.events.length)$('events').append(text('p','no events yet. the tool keeps uncertain cases too.','empty'));
+      data.events.slice().reverse().forEach(event=>{const button=text('button','', 'event');button.append(text('span',time(event.start)+' UTC'),text('strong',label(event.classification)),text('span',event.affected_venues.join(' + ')+' · '+event.status));button.onclick=()=>showEvent(event.id);$('events').append(button);});}
     const hr=await fetch('/api/history');if(hr.ok){history=await hr.json();chart('spread',history,'spread_bps');chart('depth',history,'depth_usd');}
-    if(selected)await showEvent(selected);
+    if(selected)await showEvent(selected,false);
   } catch(error) {$('session').textContent=error.message;}
 }
 window.addEventListener('resize',()=>{chart('spread',history,'spread_bps');chart('depth',history,'depth_usd');if(selected)showEvent(selected);});
