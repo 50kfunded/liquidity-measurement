@@ -20,7 +20,21 @@ def main():
     pilot.add_argument("session")
     pilot.add_argument("--measures")
     pilot.add_argument("--output", required=True)
+    replay_parser = commands.add_parser("replay", help="rebuild measures and events from raw messages")
+    replay_parser.add_argument("session")
+    replay_parser.add_argument("--output", required=True)
+    report_parser = commands.add_parser("report", help="reproduce the figures and research summary")
+    report_parser.add_argument("directory")
+    report_parser.add_argument("--output", required=True)
     args = parser.parse_args()
+    if args.command in ("replay", "report"):
+        from .analysis import replay, report
+        if args.command == "replay":
+            summary = replay(args.session, args.output)
+        else:
+            summary = report(args.directory, args.output)
+        print(json.dumps(summary, indent=2))
+        return
     if args.command == "chart":
         from .charts import plot_series, read_observations
         plot_series(read_observations(args.directory), args.output)
